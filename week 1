@@ -1,0 +1,98 @@
+#Pratical machine learning course
+#week 1
+#What is prediction? topic
+#install.packages("kernlab")
+
+library(kernlab)
+data(spam)
+head(spam)
+
+#Aparece a frequencia das palavras num e-mail#
+#Podemos criar um algoritmo que prediz a classificação de emails em spam ou e-mail desejaveis
+#com base na frequencia das palavras
+
+plot(density(spam$your[spam$type=="nonspam"]),
+     col="blue", main= "", xlab="Frequencia de 'your' no e-mail")
+lines(density(spam$your[spam$type=="spam"]), col="red")
+
+#Podemos tentar encontrar um ponto de corte para a palavra your por exemplo
+#que em SPAM aparece com mais frequencia
+
+plot(density(spam$your[spam$type=="nonspam"]),
+     col="blue", main= "", xlab="Frequencia de 'your' no e-mail")
+lines(density(spam$your[spam$type=="spam"]), col="red")
+abline(v=0.5, col="black")
+
+#vamos avaliar então se o ponto de corte esta bom para classificar os emails como
+#SPAM ou desejavel com base na frequencia dessa palavra
+
+#vamos construir um vetor de predição
+prediction<- ifelse(spam$your>0.5, "spam", "nonspam")
+
+#
+table(prediction, spam$type)/length(spam$type)
+#Acuracy = 0.459+0.292 =75.10%
+
+
+#In and out of sample errors Topic
+#exemplo de in and out of sample errors
+
+set.seed(333) #garantir a reprodutibilidade
+
+#amostra com 10 elementos do conjunto de dados
+smallSpam<- spam[sample(dim(spam)[1], size=10),]
+spamLabel<- (smallSpam$type=="spam")*1+1
+
+#Tentaremos predizer o e-mails de SPAM através do número médio de letras maiusculas
+plot(smallSpam$capitalAve, col=spamLabel)
+
+#regra 1
+#Criar um preditor que diz se tiver muit letra maiuscula, então aquele e-mail é SPAM
+
+#capitalAve>2.7 = "spam"
+#capitalAve<2.40 = "nonspam"
+#****
+#capitalAve between 2.4 and 2.45 = "spam"
+#capitalAve between 2.45 and 2.7="nonspam"
+# a regra super especifica acima é com base na amostra coletada
+
+#aplicar a regra
+rule1<- function(x){
+  prediction <- rep(NA, length(x))
+  prediction[x>=1 & x<=1.09]<- "nonspam"
+  prediction[(x>1.09 & x<=1.79)]<- "spam"  
+  prediction[(x>=1.8 & x<=2.555)]<- "nonspam"  
+  prediction[(x>2.555 & x<=6.758)]<- "spam"
+  prediction[(x>6.758)]<- "nonspam"
+  return(prediction)
+}
+
+table(rule1(smallSpam$capitalAve), smallSpam$type)
+table(smallSpam$type)
+#100% de acerto
+
+#predições com a regra 2
+#mais simples
+#capitalAve>2.80="spam"
+#capitalAve<=2.80="nonspam"
+
+rule2<-function(x){
+  prediction <- rep(NA, length(x))
+  prediction[x>2.80] <- "spam"
+  prediction[x<=2.80] <- "nonspam"
+  return(prediction)
+}
+
+table(rule2(smallSpam$capitalAve), smallSpam$type)
+
+#vamos aplicar a regra em todo o conjunto de dados
+
+table(rule1(spam$capitalAve), spam$type)
+(1221+1145)/4601
+#acerto de 50%
+
+table(rule2(spam$capitalAve), spam$type)
+(2224+1171)/4601
+#acerto de 70%
+
+#isso se deve ao overfitting da regra 1
